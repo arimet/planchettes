@@ -75,31 +75,47 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
   table.receiveShadow = true;
   scene.add(table);
 
-  const geo = new RoundedBoxGeometry(HALF.x * 2, HALF.y * 2, HALF.z * 2, 3, 0.14);
+  const geo = new RoundedBoxGeometry(HALF.x * 2, HALF.y * 2, HALF.z * 2, 2, 0.14);
   const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(HALF.x * 2, HALF.y * 2, HALF.z * 2));
   const grain = woodTexture();
-  // four slightly different woods so a wall does not look printed
-  const woods = ['#ffffff', '#fbefe0', '#f6e6d2', '#fff7ea'].map((tint) => new THREE.MeshStandardMaterial({ map: grain, color: tint, roughness: 0.72 }));
-  const fresh = new THREE.MeshStandardMaterial({ map: grain, color: '#ffa860', emissive: '#ff6a00', emissiveIntensity: 0.38, roughness: 0.55 });
-  const outline = new THREE.LineBasicMaterial({ color: '#ff7a1a', transparent: true, opacity: 0.9 });
+  const wood = new THREE.MeshStandardMaterial({ map: grain, roughness: 0.72 });
+  // slightly different woods so a wall does not look printed
+  const tints = ['#ffffff', '#fbefe0', '#f6e6d2', '#fff7ea'].map((c) => new THREE.Color(c));
+  const fresh = new THREE.MeshStandardMaterial({ map: grain, color: '#ff9b82', emissive: '#ff5a36', emissiveIntensity: 0.35, roughness: 0.55 });
+  const outline = new THREE.LineBasicMaterial({ color: '#1b1e26', transparent: true, opacity: 0.85 });
 
+  // one instanced mesh for the placed planks, one for the new ones: two draw calls whatever the model size
   const group = new THREE.Group();
   scene.add(group);
+  let oldMesh: THREE.InstancedMesh | null = null;
+  let freshMesh: THREE.InstancedMesh | null = null;
+  let lines: THREE.LineSegments[] = [];
+  let freshPlanks: Plank[] = [];
 
-  type Drop = { obj: THREE.Object3D; y: number; start: number };
+  const dummy = new THREE.Object3D();
+  function place(target: THREE.InstancedMesh, i: number, p: Plank, lift = 0) {
+    dummy.position.set(p.x, p.y + lift, p.z);
+    dummy.quaternion.copy(rotation(p));
+    dummy.updateMatrix();
+    target.setMatrixAt(i, dummy.matrix);
+  }
+  function instanced(material: THREE.Material, n: number): THREE.InstancedMesh {
+    const m = new THREE.InstancedMesh(geo, material, Math.max(n, 1));
+    m.count = n;
+    m.castShadow = m.receiveShadow = true;
+    group.add(m);
+    return m;
+  }
+
+  type Drop = { i: number; start: number };
   let drops: Drop[] = [];
   let awakeUntil = 0;
   let raf = 0;
 
-  function plankObject(p: Plank, i: number, isFresh: boolean): THREE.Object3D {
-    const o = new THREE.Group();
-    const mesh = new THREE.Mesh(geo, isFresh ? fresh : woods[i % woods.length]);
-    mesh.castShadow = mesh.receiveShadow = true;
-    o.add(mesh);
-    if (isFresh) o.add(new THREE.LineSegments(edges, outline));
-    o.position.set(p.x, p.y, p.z);
-    o.quaternion.copy(rotation(p));
-    return o;
+  function lift(i: number, l: number) {
+    const p = freshPlanks[i];
+    place(freshMesh!, i, p, l);
+    lines[i].position.set(p.x, p.y + l, p.z);
   }
 
   function resize() {
@@ -113,21 +129,24 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
 
-  // render on demand: while dropping, while the user turns the model (damping), or while celebrating
+  // render on demand: while dropping, while the user turns the model (damping), or while celebrating.
+  // raf stays set for the whole tick, so 'change' events fired by controls.update() never queue a second loop.
   function wake(ms = 1200) {
     awakeUntil = Math.max(awakeUntil, performance.now() + ms);
     if (!raf) raf = requestAnimationFrame(tick);
   }
   function tick(now: number) {
-    raf = 0;
-    drops = drops.filter((d) => {
-      const t = Math.min(1, Math.max(0, (now - d.start) / DROP_MS));
-      d.obj.position.y = d.y + DROP * (1 - easeOut(t));
-      return t < 1;
-    });
+    if (drops.length) {
+      drops = drops.filter((d) => {
+        const t = Math.min(1, Math.max(0, (now - d.start) / DROP_MS));
+        lift(d.i, DROP * (1 - easeOut(t)));
+        return t < 1;
+      });
+      freshMesh!.instanceMatrix.needsUpdate = true;
+    }
     controls.update();
     renderer.render(scene, camera);
-    if (drops.length || controls.autoRotate || now < awakeUntil) raf = requestAnimationFrame(tick);
+    raf = drops.length || controls.autoRotate || now < awakeUntil ? requestAnimationFrame(tick) : 0;
   }
   controls.addEventListener('change', () => wake());
   controls.addEventListener('start', () => wake(60_000));
@@ -149,7 +168,10 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
       group.position.set(-center.x, 0, -center.z); // model centered on the table
       const radius = max.clone().sub(min).length() / 2;
       const target = new THREE.Vector3(0, center.y * 0.9, 0);
-      const dist = (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2))) * 0.98;
+      resize(); // the aspect ratio must be known: on a phone in portrait, the width is what limits
+      const vHalf = THREE.MathUtils.degToRad(camera.fov / 2);
+      const half = Math.min(vHalf, Math.atan(Math.tan(vHalf) * camera.aspect));
+      const dist = (radius / Math.sin(half)) * 0.98;
       camera.position.copy(target).add(new THREE.Vector3(0.62, 0.48, 1).normalize().multiplyScalar(dist));
       camera.near = dist / 60;
       camera.far = dist * 12;
@@ -168,19 +190,26 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
       s.updateProjectionMatrix();
       resize();
     },
-    show(old, freshPlanks, animate = true) {
+    show(old, newPlanks, animate = true) {
+      oldMesh?.dispose();
+      freshMesh?.dispose();
       group.clear();
-      drops = [];
-      old.forEach((p, i) => group.add(plankObject(p, i, false)));
-      const now = performance.now();
-      freshPlanks.forEach((p, i) => {
-        const obj = plankObject(p, i, true);
-        group.add(obj);
-        if (animate) {
-          obj.position.y = p.y + DROP;
-          drops.push({ obj, y: p.y, start: now + i * STAGGER_MS });
-        }
+      oldMesh = instanced(wood, old.length);
+      old.forEach((p, i) => {
+        place(oldMesh!, i, p);
+        oldMesh!.setColorAt(i, tints[i % tints.length]);
       });
+      freshPlanks = newPlanks;
+      freshMesh = instanced(fresh, newPlanks.length);
+      lines = newPlanks.map((p) => {
+        const l = new THREE.LineSegments(edges, outline);
+        l.quaternion.copy(rotation(p));
+        group.add(l);
+        return l;
+      });
+      const now = performance.now();
+      drops = animate ? newPlanks.map((_, i) => ({ i, start: now + i * STAGGER_MS })) : [];
+      newPlanks.forEach((_, i) => lift(i, animate ? DROP : 0));
       wake(0);
     },
     celebrate(on) {
@@ -197,7 +226,9 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
       ro.disconnect();
       controls.dispose();
       for (const d of [geo, edges, table.geometry]) d.dispose();
-      for (const m of [...woods, fresh, outline, table.material]) m.dispose();
+      oldMesh?.dispose();
+      freshMesh?.dispose();
+      for (const m of [wood, fresh, outline, table.material]) m.dispose();
       grain.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

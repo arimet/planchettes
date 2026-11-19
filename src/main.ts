@@ -1,6 +1,7 @@
-import '@fontsource/fredoka/400.css';
-import '@fontsource/fredoka/600.css';
-import '@fontsource/fredoka/700.css';
+import '@fontsource/nunito/400.css';
+import '@fontsource/nunito/700.css';
+import '@fontsource/nunito/800.css';
+import '@fontsource/nunito/900.css';
 import './style.css';
 import type { Plank } from './geometry';
 import { count, placed, THEMES, type Model, type Theme } from './model';
@@ -41,6 +42,13 @@ const POSE_LABEL: Record<Pose, [string, string]> = {
 };
 const pose = (p: Plank): Pose => (p.tilt ? 'penchée' : p.o.startsWith('flat') ? 'couchée' : p.o.startsWith('edge') ? 'tranche' : 'debout');
 
+const LOGO = `<svg class="logo" viewBox="0 0 64 48" aria-hidden="true">
+  <g><polygon class="t" points="6,36 46,36 56,30 16,30"/><polygon class="f" points="6,36 46,36 46,42 6,42"/><polygon class="s" points="46,36 56,30 56,36 46,42"/></g>
+  <g><polygon class="t" points="12,20 22,20 28,16 18,16"/><polygon class="f" points="12,20 22,20 22,36 12,36"/><polygon class="s" points="22,20 28,16 28,32 22,36"/></g>
+  <g class="hot"><polygon class="t" points="34,20 44,20 50,16 40,16"/><polygon class="f" points="34,20 44,20 44,36 34,36"/><polygon class="s" points="44,20 50,16 50,32 44,36"/></g>
+  <g><polygon class="t" points="8,14 48,14 58,8 18,8"/><polygon class="f" points="8,14 48,14 48,20 8,20"/><polygon class="s" points="48,14 58,8 58,14 48,20"/></g>
+</svg>`;
+
 const level = (n: number) =>
   `<span class="level" aria-label="niveau ${n} sur 3">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -48,6 +56,7 @@ const allPlanks = (m: Model) => m.steps.flatMap((s) => s.planks);
 
 // ---------- thumbnails: one offscreen renderer, rendered once per session ----------
 const thumbs = new Map<string, string>();
+const HERO_STEP = 13;
 function thumbnails(): Map<string, string> {
   if (thumbs.size) return thumbs;
   const canvas = document.createElement('canvas');
@@ -59,6 +68,12 @@ function thumbnails(): Map<string, string> {
     v.show(allPlanks(m), [], false);
     thumbs.set(m.id, v.snapshot());
   }
+  // the hero card shows the first model half built, new planks in coral
+  const star = MODELS[0];
+  const { old, fresh } = placed(star, HERO_STEP - 1);
+  v.frame(allPlanks(star));
+  v.show(old, fresh, false);
+  thumbs.set('hero', v.snapshot());
   v.dispose();
   canvas.remove();
   return thumbs;
@@ -79,37 +94,49 @@ function home() {
   const themes = (Object.keys(THEMES) as Theme[]).filter((t) => MODELS.some((m) => m.theme === t));
   const shown = MODELS.filter((m) => !themeFilter || m.theme === themeFilter);
   const pics = thumbnails();
+  const star = MODELS[0];
   app.innerHTML = `
-    <main class="home">
-      <header class="hero">
-        <svg class="logo" viewBox="0 0 64 48" aria-hidden="true">
-          <g class="pl"><polygon class="t" points="6,36 46,36 56,30 16,30"/><polygon class="f" points="6,36 46,36 46,42 6,42"/><polygon class="s" points="46,36 56,30 56,36 46,42"/></g>
-          <g class="pl"><polygon class="t" points="12,20 22,20 28,16 18,16"/><polygon class="f" points="12,20 22,20 22,36 12,36"/><polygon class="s" points="22,20 28,16 28,32 22,36"/></g>
-          <g class="pl hot"><polygon class="t" points="34,20 44,20 50,16 40,16"/><polygon class="f" points="34,20 44,20 44,36 34,36"/><polygon class="s" points="44,20 50,16 50,32 44,36"/></g>
-          <g class="pl"><polygon class="t" points="8,14 48,14 58,8 18,8"/><polygon class="f" points="8,14 48,14 48,20 8,20"/><polygon class="s" points="48,14 58,8 58,14 48,20"/></g>
-        </svg>
-        <h1>Planchettes</h1>
-        <p>Choisis un modèle et construis-le pas à pas. Chaque modèle tient avec tes 200&nbsp;planchettes.</p>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="#/"><span class="mark">${LOGO}</span><b>Planchettes</b></a>
       </header>
-      <nav class="chips" aria-label="Thèmes">
-        <button class="chip" aria-pressed="${!themeFilter}" data-theme="">Tout</button>
-        ${themes.map((t) => `<button class="chip t-${t}" aria-pressed="${themeFilter === t}" data-theme="${t}">${THEMES[t]}</button>`).join('')}
-      </nav>
-      <ul class="shelf">
-        ${shown
-          .map(
-            (m) => `<li><a class="model t-${m.theme}" href="#/m/${m.id}">
-              <img src="${pics.get(m.id)}" alt="" width="480" height="400">
-              <span class="meta">
-                <span class="name">${esc(m.name)}</span>
-                <span class="facts"><span>${count(m)} planchettes · ${m.steps.length} étapes</span>${level(m.difficulty)}</span>
-              </span>
-            </a></li>`,
-          )
-          .join('')}
-      </ul>
-    </main>`;
-  app.querySelectorAll<HTMLButtonElement>('.chip').forEach((b) =>
+      <section class="hero">
+        <div>
+          <span class="badge">${LOGO}Pour 200 planchettes en bois</span>
+          <h1>Construis-le <em>pas&nbsp;à&nbsp;pas.</em></h1>
+          <p class="lead">Une notice comme celles des briques : la 3D qu’on fait tourner, les planchettes à prendre, et le plan pour les poser au bon endroit.</p>
+          <div class="cta"><a class="btn primary" href="#/m/${star.id}">Commencer ${esc(star.name.toLowerCase())}</a><a class="btn" href="#modeles">Voir les modèles</a></div>
+        </div>
+        <a class="live" href="#/m/${star.id}" aria-label="Ouvrir ${esc(star.name)}">
+          <span class="label">En cours</span>
+          <img src="${pics.get('hero')}" alt="" width="480" height="400">
+          <span class="live-step"><b>${HERO_STEP}</b><span>/ ${star.steps.length} étapes</span></span>
+          <span class="bar"><span style="transform:scaleX(${HERO_STEP / star.steps.length})"></span></span>
+          <span class="live-take"><svg class="pose" viewBox="0 0 56 40" aria-hidden="true">${POSE_ICON.couchée}</svg><b>×4</b> couchées</span>
+        </a>
+      </section>
+      <section class="models" id="modeles">
+        <h2>Les modèles</h2>
+        <nav class="chips" aria-label="Thèmes">
+          <button class="pill" aria-pressed="${!themeFilter}" data-theme="">Tout</button>
+          ${themes.map((t) => `<button class="pill" aria-pressed="${themeFilter === t}" data-theme="${t}">${THEMES[t]}</button>`).join('')}
+        </nav>
+        <ul class="shelf">
+          ${shown
+            .map(
+              (m) => `<li><a class="model t-${m.theme}" href="#/m/${m.id}">
+                <span class="tile"><img src="${pics.get(m.id)}" alt="" width="480" height="400"></span>
+                <span class="meta">
+                  <span class="name">${esc(m.name)}</span>
+                  <span class="facts"><span><b>${count(m)}</b> planchettes · ${m.steps.length} étapes</span>${level(m.difficulty)}</span>
+                </span>
+              </a></li>`,
+            )
+            .join('')}
+        </ul>
+      </section>
+    </div>`;
+  app.querySelectorAll<HTMLButtonElement>('.chips .pill').forEach((b) =>
     b.addEventListener('click', () => {
       themeFilter = (b.dataset.theme || null) as Theme | null;
       home();
@@ -128,11 +155,11 @@ function notice(m: Model) {
     <main class="build t-${m.theme}">
       <canvas class="view3d" aria-label="Le modèle en 3D : fais glisser pour le tourner"></canvas>
       <header class="hud-top">
-        <a class="round light" href="#/" aria-label="Retour aux modèles">${ICON.home}</a>
+        <a class="round" href="#/" aria-label="Retour aux modèles">${ICON.home}</a>
         <div class="title"><h1>${esc(m.name)}</h1><p class="where" aria-live="polite"></p></div>
-        <button class="round light plan-toggle" aria-label="Voir le plan" aria-expanded="false">${ICON.plan}</button>
+        <button class="round plan-toggle" aria-label="Voir le plan" aria-expanded="false">${ICON.plan}</button>
       </header>
-      <aside class="parts" aria-label="Planchettes à prendre"><h2>Prends</h2><ul></ul></aside>
+      <aside class="parts" aria-label="Planchettes à prendre"><span class="label">Prends</span><ul></ul></aside>
       <p class="hint"></p>
       <section class="drawer swipe" aria-label="Plan de l’étape" hidden>
         <header><h2>Le plan</h2><button class="round small close-plan" aria-label="Fermer le plan">${ICON.close}</button></header>
@@ -140,17 +167,17 @@ function notice(m: Model) {
         <figure><figcaption>Vu de face</figcaption><div class="plan-front"></div></figure>
       </section>
       <section class="bravo" hidden>
-        <h2>Bravo&nbsp;!</h2>
+        <span class="label">Fini</span><h2><em>Bravo&nbsp;!</em></h2>
         <p>Tu as posé les ${count(m)} planchettes.</p>
         <div class="actions">
-          <button class="pill again">${ICON.again}Recommencer</button>
-          <a class="pill go" href="#/">Autres modèles</a>
+          <button class="btn again">${ICON.again}Recommencer</button>
+          <a class="btn primary" href="#/">Autres modèles</a>
         </div>
       </section>
       <footer class="hud-bottom swipe">
-        <button class="round light prev" aria-label="Étape précédente">${ICON.prev}</button>
+        <button class="round big prev" aria-label="Étape précédente">${ICON.prev}</button>
         <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${n}"><div></div></div>
-        <button class="round go next" aria-label="Étape suivante">${ICON.next}</button>
+        <button class="round big go next" aria-label="Étape suivante">${ICON.next}</button>
       </footer>
     </main>`;
 
