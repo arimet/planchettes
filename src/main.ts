@@ -1,4 +1,8 @@
+import '@fontsource/fredoka/400.css';
+import '@fontsource/fredoka/600.css';
+import '@fontsource/fredoka/700.css';
 import './style.css';
+import type { Plank } from './geometry';
 import { count, placed, THEMES, type Model, type Theme } from './model';
 import { MODELS } from './models';
 import { planSvg } from './plan2d';
@@ -9,8 +13,56 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 let cleanup = () => {};
 let themeFilter: Theme | null = null;
 
-const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
+// ---------- icons (authored, one stroke weight) ----------
+const svg = (body: string, cls = 'icon') =>
+  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const ICON = {
+  prev: svg('<path d="M15 5l-7 7 7 7"/>'),
+  next: svg('<path d="M9 5l7 7-7 7"/>'),
+  home: svg('<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/>'),
+  plan: svg('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 10v10"/>'),
+  close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  again: svg('<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>'),
+};
+
+// little drawings of a plank in each pose, for the "take these" callout
+type Pose = 'couchée' | 'tranche' | 'debout' | 'penchée';
+const POSE_ICON: Record<Pose, string> = {
+  couchée: '<polygon class="t" points="4,18 44,18 52,12 12,12"/><polygon class="f" points="4,18 44,18 44,23 4,23"/><polygon class="s" points="44,18 52,12 52,17 44,23"/>',
+  tranche: '<polygon class="t" points="4,13 44,13 47,10 7,10"/><polygon class="f" points="4,13 44,13 44,27 4,27"/><polygon class="s" points="44,13 47,10 47,24 44,27"/>',
+  debout: '<polygon class="t" points="20,5 31,5 35,2 24,2"/><polygon class="f" points="20,5 31,5 31,37 20,37"/><polygon class="s" points="31,5 35,2 35,34 31,37"/>',
+  penchée: '<g transform="rotate(-24 28 20)"><polygon class="t" points="4,18 44,18 52,12 12,12"/><polygon class="f" points="4,18 44,18 44,23 4,23"/><polygon class="s" points="44,18 52,12 52,17 44,23"/></g>',
+};
+const POSE_LABEL: Record<Pose, [string, string]> = {
+  couchée: ['couchée', 'couchées'],
+  tranche: ['sur la tranche', 'sur la tranche'],
+  debout: ['debout', 'debout'],
+  penchée: ['penchée', 'penchées'],
+};
+const pose = (p: Plank): Pose => (p.tilt ? 'penchée' : p.o.startsWith('flat') ? 'couchée' : p.o.startsWith('edge') ? 'tranche' : 'debout');
+
+const level = (n: number) =>
+  `<span class="level" aria-label="niveau ${n} sur 3">${[1, 2, 3].map((i) => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</span>`;
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+const allPlanks = (m: Model) => m.steps.flatMap((s) => s.planks);
+
+// ---------- thumbnails: one offscreen renderer, rendered once per session ----------
+const thumbs = new Map<string, string>();
+function thumbnails(): Map<string, string> {
+  if (thumbs.size) return thumbs;
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;left:-9999px;width:480px;height:400px';
+  document.body.append(canvas);
+  const v = createViewer(canvas, { preserve: true });
+  for (const m of MODELS) {
+    v.frame(allPlanks(m));
+    v.show(allPlanks(m), [], false);
+    thumbs.set(m.id, v.snapshot());
+  }
+  v.dispose();
+  canvas.remove();
+  return thumbs;
+}
 
 function render() {
   cleanup();
@@ -21,30 +73,39 @@ function render() {
   window.scrollTo(0, 0);
 }
 
+// ---------- home ----------
 function home() {
   document.title = 'Planchettes';
   const themes = (Object.keys(THEMES) as Theme[]).filter((t) => MODELS.some((m) => m.theme === t));
   const shown = MODELS.filter((m) => !themeFilter || m.theme === themeFilter);
+  const pics = thumbnails();
   app.innerHTML = `
     <main class="home">
       <header class="hero">
+        <svg class="logo" viewBox="0 0 64 48" aria-hidden="true">
+          <g class="pl"><polygon class="t" points="6,36 46,36 56,30 16,30"/><polygon class="f" points="6,36 46,36 46,42 6,42"/><polygon class="s" points="46,36 56,30 56,36 46,42"/></g>
+          <g class="pl"><polygon class="t" points="12,20 22,20 28,16 18,16"/><polygon class="f" points="12,20 22,20 22,36 12,36"/><polygon class="s" points="22,20 28,16 28,32 22,36"/></g>
+          <g class="pl hot"><polygon class="t" points="34,20 44,20 50,16 40,16"/><polygon class="f" points="34,20 44,20 44,36 34,36"/><polygon class="s" points="44,20 50,16 50,32 44,36"/></g>
+          <g class="pl"><polygon class="t" points="8,14 48,14 58,8 18,8"/><polygon class="f" points="8,14 48,14 48,20 8,20"/><polygon class="s" points="48,14 58,8 58,14 48,20"/></g>
+        </svg>
         <h1>Planchettes</h1>
-        <p>Des modèles à construire pas à pas. On a <strong>200 planchettes</strong>, chaque modèle en utilise moins.</p>
+        <p>Choisis un modèle et construis-le pas à pas. Chaque modèle tient avec tes 200&nbsp;planchettes.</p>
       </header>
       <nav class="chips" aria-label="Thèmes">
-        <button class="chip" aria-pressed="${!themeFilter}" data-theme="">Tous</button>
-        ${themes.map((t) => `<button class="chip" aria-pressed="${themeFilter === t}" data-theme="${t}">${THEMES[t]}</button>`).join('')}
+        <button class="chip" aria-pressed="${!themeFilter}" data-theme="">Tout</button>
+        ${themes.map((t) => `<button class="chip t-${t}" aria-pressed="${themeFilter === t}" data-theme="${t}">${THEMES[t]}</button>`).join('')}
       </nav>
-      <ul class="grid">
+      <ul class="shelf">
         ${shown
-          .map((m) => {
-            const all = m.steps.flatMap((s) => s.planks);
-            return `<li><a class="card" href="#/m/${m.id}">
-              <div class="thumb">${planSvg(all, [], 'front')}</div>
-              <h2>${esc(m.name)}</h2>
-              <p><span class="count">${count(m)} planchettes</span><span class="stars" aria-label="niveau ${m.difficulty} sur 3">${stars(m.difficulty)}</span></p>
-            </a></li>`;
-          })
+          .map(
+            (m) => `<li><a class="model t-${m.theme}" href="#/m/${m.id}">
+              <img src="${pics.get(m.id)}" alt="" width="480" height="400">
+              <span class="meta">
+                <span class="name">${esc(m.name)}</span>
+                <span class="facts"><span>${count(m)} planchettes · ${m.steps.length} étapes</span>${level(m.difficulty)}</span>
+              </span>
+            </a></li>`,
+          )
           .join('')}
       </ul>
     </main>`;
@@ -56,52 +117,71 @@ function home() {
   );
 }
 
+// ---------- notice ----------
 function notice(m: Model) {
   document.title = `${m.name} · Planchettes`;
-  const n = m.steps.length; // step n = "Bravo !" (finished model, all wood)
+  const n = m.steps.length; // step n = finished model
   let step = clampStep(loadStep(m.id), n + 1);
+  if (step === n) step = 0; // reopening a finished model starts it again
 
   app.innerHTML = `
-    <main class="notice">
-      <header class="bar top">
-        <a class="back" href="#/" aria-label="Retour aux modèles">←</a>
-        <h1>${esc(m.name)}</h1>
-        <span class="stars" aria-label="niveau ${m.difficulty} sur 3">${stars(m.difficulty)}</span>
-        <span class="count">${count(m)} planchettes</span>
+    <main class="build t-${m.theme}">
+      <canvas class="view3d" aria-label="Le modèle en 3D : fais glisser pour le tourner"></canvas>
+      <header class="hud-top">
+        <a class="round light" href="#/" aria-label="Retour aux modèles">${ICON.home}</a>
+        <div class="title"><h1>${esc(m.name)}</h1><p class="where" aria-live="polite"></p></div>
+        <button class="round light plan-toggle" aria-label="Voir le plan" aria-expanded="false">${ICON.plan}</button>
       </header>
-      <section class="stage">
-        <canvas class="view3d" aria-label="Vue 3D, glisse pour tourner"></canvas>
-        <aside class="plans swipe">
-          <figure><figcaption>Vu de dessus</figcaption><div class="plan-top"></div></figure>
-          <figure><figcaption>Vu de face</figcaption><div class="plan-front"></div></figure>
-        </aside>
+      <aside class="parts" aria-label="Planchettes à prendre"><h2>Prends</h2><ul></ul></aside>
+      <p class="hint"></p>
+      <section class="drawer swipe" aria-label="Plan de l’étape" hidden>
+        <header><h2>Le plan</h2><button class="round small close-plan" aria-label="Fermer le plan">${ICON.close}</button></header>
+        <figure><figcaption>Vu de dessus</figcaption><div class="plan-top"></div></figure>
+        <figure><figcaption>Vu de face</figcaption><div class="plan-front"></div></figure>
       </section>
-      <footer class="bar bottom swipe">
-        <div class="progress"><div></div></div>
-        <p class="hint"></p>
-        <div class="nav">
-          <button class="prev" aria-label="Étape précédente">◀</button>
-          <p class="label" aria-live="polite"></p>
-          <button class="next" aria-label="Étape suivante">▶</button>
+      <section class="bravo" hidden>
+        <h2>Bravo&nbsp;!</h2>
+        <p>Tu as posé les ${count(m)} planchettes.</p>
+        <div class="actions">
+          <button class="pill again">${ICON.again}Recommencer</button>
+          <a class="pill go" href="#/">Autres modèles</a>
         </div>
+      </section>
+      <footer class="hud-bottom swipe">
+        <button class="round light prev" aria-label="Étape précédente">${ICON.prev}</button>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${n}"><div></div></div>
+        <button class="round go next" aria-label="Étape suivante">${ICON.next}</button>
       </footer>
     </main>`;
 
   const $ = <T extends Element>(s: string) => app.querySelector<T>(s)!;
   const viewer = createViewer($<HTMLCanvasElement>('.view3d'));
-  viewer.frame(m.steps.flatMap((s) => s.planks));
+  viewer.frame(allPlanks(m));
+  const drawer = $<HTMLElement>('.drawer');
+  const toggle = $<HTMLButtonElement>('.plan-toggle');
 
-  function update() {
+  function update(animate = true) {
     const done = step === n;
-    const { old, fresh } = done ? { old: m.steps.flatMap((s) => s.planks), fresh: [] } : placed(m, step);
-    viewer.show(old, fresh);
+    const { old, fresh } = done ? { old: allPlanks(m), fresh: [] } : placed(m, step);
+    viewer.show(old, fresh, animate);
+    viewer.celebrate(done);
     $('.plan-top').innerHTML = planSvg(old, fresh, 'top');
     $('.plan-front').innerHTML = planSvg(old, fresh, 'front');
-    $('.label').innerHTML = done
-      ? `<strong>Bravo !</strong> <span>${count(m)} planchettes</span>`
-      : `<strong>Étape ${step + 1} / ${n}</strong> <span>+${fresh.length} planchettes</span>`;
-    $('.hint').textContent = done ? 'Le modèle est fini !' : (m.steps[step].hint ?? '');
-    $<HTMLElement>('.progress div').style.width = `${(step / n) * 100}%`;
+    $('.where').textContent = done ? 'Fini !' : `Étape ${step + 1} sur ${n}`;
+
+    const groups = new Map<Pose, number>();
+    for (const p of fresh) groups.set(pose(p), (groups.get(pose(p)) ?? 0) + 1);
+    $('.parts ul').innerHTML = [...groups]
+      .map(([k, c]) => `<li><svg class="pose" viewBox="0 0 56 40" aria-hidden="true">${POSE_ICON[k]}</svg><b>×${c}</b><span>${POSE_LABEL[k][c > 1 ? 1 : 0]}</span></li>`)
+      .join('');
+    $<HTMLElement>('.parts').hidden = done;
+    const hint = done ? '' : (m.steps[step].hint ?? '');
+    $('.hint').textContent = hint;
+    $<HTMLElement>('.hint').hidden = !hint;
+    $<HTMLElement>('.bravo').hidden = !done;
+    const bar = $<HTMLElement>('.progress');
+    bar.setAttribute('aria-valuenow', String(step));
+    bar.querySelector<HTMLElement>('div')!.style.transform = `scaleX(${step / n})`;
     $<HTMLButtonElement>('.prev').disabled = step === 0;
     $<HTMLButtonElement>('.next').disabled = done;
     saveStep(m.id, step);
@@ -110,25 +190,33 @@ function notice(m: Model) {
     const s = clampStep(step + d, n + 1);
     if (s !== step) (step = s), update();
   };
+  const setDrawer = (open: boolean) => {
+    drawer.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+  };
 
   $('.prev').addEventListener('click', () => go(-1));
   $('.next').addEventListener('click', () => go(1));
+  $('.again').addEventListener('click', () => ((step = 0), update()));
+  toggle.addEventListener('click', () => setDrawer(drawer.hidden !== false));
+  $('.close-plan').addEventListener('click', () => setDrawer(false));
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft') go(-1);
     if (e.key === 'ArrowRight') go(1);
+    if (e.key === 'Escape') setDrawer(false);
   };
   document.addEventListener('keydown', onKey);
-  // swipe only on the plan panel and the bottom bar: dragging the 3D view rotates it
+  // swipe on the bottom bar and the plan: dragging the 3D view only turns the model
   app.querySelectorAll<HTMLElement>('.swipe').forEach((el) => {
     let x0: number | null = null;
-    el.addEventListener('pointerdown', (e) => (x0 = e.clientX));
+    el.addEventListener('pointerdown', (e) => (x0 = (e.target as Element).closest('button') ? null : e.clientX));
     el.addEventListener('pointerup', (e) => {
       if (x0 !== null && Math.abs(e.clientX - x0) > 50) go(e.clientX < x0 ? 1 : -1);
       x0 = null;
     });
   });
 
-  update();
+  update(false);
   cleanup = () => {
     document.removeEventListener('keydown', onKey);
     viewer.dispose();

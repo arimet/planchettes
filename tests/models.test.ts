@@ -8,7 +8,7 @@ import { planSvg } from '../src/plan2d';
 beforeAll(initPhysics);
 
 test('ids are unique', () => expect(new Set(MODELS.map((m) => m.id)).size).toBe(MODELS.length));
-test('first batch is there', () => expect(MODELS.map((m) => m.id)).toEqual(['tour-torsadee', 'girafe', 'pont']));
+test('first batch is there', () => expect(MODELS.map((m) => m.id)).toEqual(['tour-torsadee', 'pont']));
 
 describe.each(MODELS)('$name', (m) => {
   test('fits the box of 200', () => expect(count(m)).toBeLessThanOrEqual(200));

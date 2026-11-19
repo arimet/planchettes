@@ -1,7 +1,7 @@
 import { corners, type Plank } from './geometry';
 
-const MARGIN = 2;
-const LABEL = 2.4; // label size in units, matches .order font-size
+const MARGIN = 4;
+const LABEL = 2.4; // smallest label size in units
 const r = (n: number) => +n.toFixed(2);
 type Pt = [number, number];
 
@@ -48,11 +48,13 @@ export function planSvg(old: Plank[], fresh: Plank[], view: 'top' | 'front'): st
     };
   });
   const level = Math.max(...(fresh.length ? fresh : old).map((p) => Math.max(...corners(p).map((v) => v.y))));
-  const minX = Math.min(...rects.map((q) => q.x0)) - MARGIN;
-  const minY = Math.min(...rects.map((q) => q.y0)) - MARGIN;
-  const w = Math.max(...rects.map((q) => q.x1)) + MARGIN - minX;
-  const h = Math.max(...rects.map((q) => q.y1)) + MARGIN - minY;
-
+  // framed on this step's planks (with some context around), so numbers stay readable on big models
+  const focus = rects.filter((q) => q.fresh).length ? rects.filter((q) => q.fresh) : rects;
+  const minX = Math.min(...focus.map((q) => q.x0)) - MARGIN;
+  const minY = Math.min(...focus.map((q) => q.y0)) - MARGIN;
+  const w = Math.max(...focus.map((q) => q.x1)) + MARGIN - minX;
+  const h = Math.max(...focus.map((q) => q.y1)) + MARGIN - minY;
+  const label = Math.max(LABEL, Math.max(w, h) / 22);
   // painter's order: lower (top view) or farther (front view) first
   const body = [...rects]
     .sort((a, b) => a.depth - b.depth)
@@ -68,10 +70,10 @@ export function planSvg(old: Plank[], fresh: Plank[], view: 'top' | 'front'): st
     // hidden under a plank drawn on top of it: the child cannot see it from this side
     if (rects.some((o) => o.depth > q.depth + 1e-6 && inside(o.pts, x, y))) continue;
     // too close to another label (thin planks side by side): one merged label
-    const near = labels.find((l) => Math.hypot(l.x - x, l.y - y) < LABEL);
+    const near = labels.find((l) => Math.hypot(l.x - x, l.y - y) < label);
     if (near) near.text += `·${q.fresh}`;
     else labels.push({ x, y, text: String(q.fresh) });
   }
-  const texts = labels.map((l) => `<text class="order" x="${r(l.x)}" y="${r(l.y)}">${l.text}</text>`);
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="plan" viewBox="${r(minX)} ${r(minY)} ${r(w)} ${r(h)}">${body.join('')}${texts.join('')}</svg>`;
+  const texts = labels.map((l) => `<text class="order" x="${r(l.x)}" y="${r(l.y)}" font-size="${r(label)}" stroke-width="${r(label / 4.5)}">${l.text}</text>`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="plan" overflow="hidden" viewBox="${r(minX)} ${r(minY)} ${r(w)} ${r(h)}">${body.join('')}${texts.join('')}</svg>`;
 }
