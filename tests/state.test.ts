@@ -5,7 +5,7 @@ import { clampStep, loadStep, parseRoute, saveStep } from '../src/state';
 test('unknown id goes home', () => expect(parseRoute('#/m/nope', MODELS)).toEqual({ page: 'home' }));
 test('empty hash goes home', () => expect(parseRoute('', MODELS)).toEqual({ page: 'home' }));
 test('known id opens notice', () =>
-  expect(parseRoute('#/m/cabane', MODELS)).toMatchObject({ page: 'notice', model: { id: 'cabane' } }));
+  expect(parseRoute('#/m/girafe', MODELS)).toMatchObject({ page: 'notice', model: { id: 'girafe' } }));
 
 test('clampStep', () => {
   expect(clampStep(99, 5)).toBe(4);

@@ -1,7 +1,6 @@
 import type { Model } from '../model';
-import { cabane } from './cabane';
 import { girafe } from './girafe';
-import { tour } from './tour';
-import { voiture } from './voiture';
+import { pont } from './pont';
+import { tourTorsadee } from './tour-torsadee';
 
-export const MODELS: Model[] = [cabane, voiture, girafe, tour];
+export const MODELS: Model[] = [tourTorsadee, girafe, pont];

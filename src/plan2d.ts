@@ -1,8 +1,31 @@
-import { box, type Plank } from './geometry';
+import { corners, type Plank } from './geometry';
 
 const MARGIN = 2;
 const LABEL = 2.4; // label size in units, matches .order font-size
 const r = (n: number) => +n.toFixed(2);
+type Pt = [number, number];
+
+/** Convex hull (monotone chain), counterclockwise, no duplicate points. */
+function hull(points: Pt[]): Pt[] {
+  const p = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: Pt, a: Pt, b: Pt) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (list: Pt[]) => {
+    const out: Pt[] = [];
+    for (const q of list) {
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], q) <= 1e-9) out.pop();
+      out.push(q);
+    }
+    return out.slice(0, -1);
+  };
+  return [...half(p), ...half([...p].reverse())];
+}
+
+/** Strictly inside a convex counterclockwise polygon. */
+const inside = (poly: Pt[], x: number, y: number) =>
+  poly.every((a, i) => {
+    const b = poly[(i + 1) % poly.length];
+    return (b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0]) > 1e-6;
+  });
 
 /**
  * Orthographic plan. top = seen from above (x → right, z → down);
@@ -12,12 +35,19 @@ const r = (n: number) => +n.toFixed(2);
 export function planSvg(old: Plank[], fresh: Plank[], view: 'top' | 'front'): string {
   const all = [...old.map((p) => ({ p, fresh: 0 })), ...fresh.map((p, i) => ({ p, fresh: i + 1 }))];
   const rects = all.map(({ p, fresh }) => {
-    const { min, max } = box(p);
-    return view === 'top'
-      ? { x0: min[0], x1: max[0], y0: min[2], y1: max[2], depth: max[1], fresh }
-      : { x0: min[0], x1: max[0], y0: -max[1], y1: -min[1], depth: max[2], fresh };
+    const c = corners(p);
+    const pts = hull(c.map((v) => (view === 'top' ? [v.x, v.z] : [v.x, -v.y]) as Pt));
+    const xs = pts.map((q) => q[0]);
+    const ys = pts.map((q) => q[1]);
+    return {
+      pts,
+      x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys),
+      cx: xs.reduce((a, b) => a + b) / xs.length, cy: ys.reduce((a, b) => a + b) / ys.length,
+      depth: Math.max(...c.map((v) => (view === 'top' ? v.y : v.z))),
+      fresh,
+    };
   });
-  const level = Math.max(...(fresh.length ? fresh : old).map((p) => box(p).max[1]));
+  const level = Math.max(...(fresh.length ? fresh : old).map((p) => Math.max(...corners(p).map((v) => v.y))));
   const minX = Math.min(...rects.map((q) => q.x0)) - MARGIN;
   const minY = Math.min(...rects.map((q) => q.y0)) - MARGIN;
   const w = Math.max(...rects.map((q) => q.x1)) + MARGIN - minX;
@@ -28,15 +58,15 @@ export function planSvg(old: Plank[], fresh: Plank[], view: 'top' | 'front'): st
     .sort((a, b) => a.depth - b.depth)
     .map((q) => {
       const faded = view === 'top' && !q.fresh && q.depth < level - 1e-6 ? ' opacity="0.35"' : '';
-      return `<rect class="${q.fresh ? 'fresh' : 'old'}" x="${r(q.x0)}" y="${r(q.y0)}" width="${r(q.x1 - q.x0)}" height="${r(q.y1 - q.y0)}"${faded}/>`;
+      return `<polygon class="${q.fresh ? 'fresh' : 'old'}" points="${q.pts.map(([x, y]) => `${r(x)},${r(y)}`).join(' ')}"${faded}/>`;
     });
   const labels: { x: number; y: number; text: string }[] = [];
   for (const q of rects) {
     if (!q.fresh) continue;
-    const x = (q.x0 + q.x1) / 2;
-    const y = (q.y0 + q.y1) / 2;
+    const x = q.cx;
+    const y = q.cy;
     // hidden under a plank drawn on top of it: the child cannot see it from this side
-    if (rects.some((o) => o.depth > q.depth + 1e-6 && o.x0 < x && x < o.x1 && o.y0 < y && y < o.y1)) continue;
+    if (rects.some((o) => o.depth > q.depth + 1e-6 && inside(o.pts, x, y))) continue;
     // too close to another label (thin planks side by side): one merged label
     const near = labels.find((l) => Math.hypot(l.x - x, l.y - y) < LABEL);
     if (near) near.text += `·${q.fresh}`;
