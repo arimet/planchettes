@@ -1,6 +1,7 @@
 import { box, type Plank } from './geometry';
 
 const MARGIN = 2;
+const LABEL = 2.4; // label size in units, matches .order font-size
 const r = (n: number) => +n.toFixed(2);
 
 /**
@@ -29,8 +30,18 @@ export function planSvg(old: Plank[], fresh: Plank[], view: 'top' | 'front'): st
       const faded = view === 'top' && !q.fresh && q.depth < level - 1e-6 ? ' opacity="0.35"' : '';
       return `<rect class="${q.fresh ? 'fresh' : 'old'}" x="${r(q.x0)}" y="${r(q.y0)}" width="${r(q.x1 - q.x0)}" height="${r(q.y1 - q.y0)}"${faded}/>`;
     });
-  const labels = rects
-    .filter((q) => q.fresh)
-    .map((q) => `<text class="order" x="${r((q.x0 + q.x1) / 2)}" y="${r((q.y0 + q.y1) / 2)}">${q.fresh}</text>`);
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="plan" viewBox="${r(minX)} ${r(minY)} ${r(w)} ${r(h)}">${body.join('')}${labels.join('')}</svg>`;
+  const labels: { x: number; y: number; text: string }[] = [];
+  for (const q of rects) {
+    if (!q.fresh) continue;
+    const x = (q.x0 + q.x1) / 2;
+    const y = (q.y0 + q.y1) / 2;
+    // hidden under a plank drawn on top of it: the child cannot see it from this side
+    if (rects.some((o) => o.depth > q.depth + 1e-6 && o.x0 < x && x < o.x1 && o.y0 < y && y < o.y1)) continue;
+    // too close to another label (thin planks side by side): one merged label
+    const near = labels.find((l) => Math.hypot(l.x - x, l.y - y) < LABEL);
+    if (near) near.text += `·${q.fresh}`;
+    else labels.push({ x, y, text: String(q.fresh) });
+  }
+  const texts = labels.map((l) => `<text class="order" x="${r(l.x)}" y="${r(l.y)}">${l.text}</text>`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="plan" viewBox="${r(minX)} ${r(minY)} ${r(w)} ${r(h)}">${body.join('')}${texts.join('')}</svg>`;
 }

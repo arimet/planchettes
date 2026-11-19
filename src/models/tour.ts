@@ -1,22 +1,26 @@
 import { at, type Plank } from '../geometry';
 import { chunk, type Model } from '../model';
 
-// Pinwheel ring: 4 planks per layer around an 18 × 18 square, mirrored every other layer.
+// Classic square tower: 4 planks on edge around a 16 × 16 square, the pinwheel mirrored every layer.
 function ring(y: number, mirrored: boolean): Plank[] {
   return mirrored
-    ? [at('flat-x', 3, y, 0), at('flat-z', 15, y, 3), at('flat-x', 0, y, 15), at('flat-z', 0, y, 0)]
-    : [at('flat-x', 0, y, 0), at('flat-z', 15, y, 0), at('flat-x', 3, y, 15), at('flat-z', 0, y, 3)];
+    ? [at('edge-x', 1, y, 0), at('edge-z', 15, y, 1), at('edge-x', 0, y, 15), at('edge-z', 0, y, 0)]
+    : [at('edge-x', 0, y, 0), at('edge-z', 15, y, 0), at('edge-x', 1, y, 15), at('edge-z', 0, y, 1)];
 }
 
-const LAYERS = 18;
-const walls = Array.from({ length: LAYERS }, (_, y) => ring(y, y % 2 === 1)).flat();
-const roof = [0, 3, 6, 9, 12, 15].map((z) => at('flat-x', 1.5, LAYERS, z));
-const flag = at('up-x', 7.5, LAYERS + 1, 8);
+const LAYERS = 16;
+const TOP = LAYERS * 3;
+const walls = Array.from({ length: LAYERS }, (_, i) => ring(i * 3, i % 2 === 1)).flat();
+const roof = [0.5, 3.5, 6.5, 9.5, 12.5].map((z) => at('flat-x', 0.5, TOP, z));
+const flag = at('up-x', 6.5, TOP + 1, 7.5);
 
 export const tour: Model = {
   id: 'tour',
-  name: 'Tour en rondins',
+  name: 'Tour carrée',
   theme: 'tours',
   difficulty: 1,
-  steps: [...chunk(walls, 8, 'Un tour de 4 planchettes, puis le suivant dans l’autre sens'), { planks: [...roof, flag], hint: 'Le toit, puis le drapeau debout au milieu' }],
+  steps: [
+    ...chunk(walls, 8, 'Sur la tranche : un tour de 4, puis le suivant décalé'),
+    { planks: [...roof, flag], hint: 'Le toit, puis le drapeau debout au milieu' },
+  ],
 };
