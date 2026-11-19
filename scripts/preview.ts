@@ -21,7 +21,7 @@ const views: View[] = [
   { name: 'face (+z)', project: (v) => [v.x, -v.y, v.z] },
   { name: 'côté (+x)', project: (v) => [-v.z, -v.y, v.x] },
   { name: 'dessus', project: (v) => [v.x, v.z, v.y] },
-  { name: '3/4', project: (v) => [(v.x - v.z) * c30, -v.y - (v.x + v.z) * s30 * 0.6, v.x + v.z + v.y] },
+  { name: '3/4', project: (v) => [(v.x - v.z) * c30, -v.y + (v.x + v.z) * s30 * 0.6, v.x + v.z + v.y] },
 ];
 
 function hull(p: [number, number][]): [number, number][] {
