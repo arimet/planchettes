@@ -7,6 +7,7 @@ import { fusee } from './fusee';
 import { girafe } from './girafe';
 import { igloo } from './igloo';
 import { locomotive } from './locomotive';
+import { maison } from './maison';
 import { phare } from './phare';
 import { pont } from './pont';
 import { tourTorsadee } from './tour-torsadee';
@@ -20,4 +21,4 @@ import { viaduc } from './viaduc';
 import { pagode } from './pagode';
 import { dinosaure } from './dinosaure';
 
-export const MODELS: Model[] = [tourTorsadee, chateau, fusee, bateauPirate, pont, igloo, chalet, girafe, locomotive, phare, tourEiffel, pyramide, araignee, chouette, tracteur, avion, viaduc, pagode, dinosaure];
+export const MODELS: Model[] = [tourTorsadee, chateau, fusee, bateauPirate, pont, igloo, maison, chalet, girafe, locomotive, phare, tourEiffel, pyramide, araignee, chouette, tracteur, avion, viaduc, pagode, dinosaure];
