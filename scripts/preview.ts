@@ -48,7 +48,7 @@ views.forEach((view, vi) => {
     parts.push(`<polygon points="${q.pts.map(([x, y]) => `${(ox + (x - x0) * k).toFixed(1)},${(oy + (y - y0) * k).toFixed(1)}`).join(' ')}" fill="${q.hot ? '#ff7a5c' : '#ecc993'}" stroke="#6b4a22" stroke-width="1"/>`);
 });
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CELL * 2}" height="${CELL * 2}"><rect width="100%" height="100%" fill="#fff"/>${parts.join('')}</svg>`;
-const out = resolve(process.env.OUT ?? '.superpowers/preview');
+const out = resolve(process.env.OUT ?? 'previews');
 mkdirSync(out, { recursive: true });
 const base = `${out}/${m.id}${stepArg ? `-step${stepArg}` : ''}`;
 writeFileSync(`${base}.svg`, svg);

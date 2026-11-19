@@ -73,7 +73,7 @@ export function jitter(planks: Plank[], seed: number, amount = JITTER): Plank[] 
 
 export let lastFailure: { k: number; seed: number; maxMove: number; maxTurnDeg: number } | null = null;
 
-// ponytail: re-simulates from scratch per prefix (O(n²) steps); incremental world if models get too slow.
+// Note: re-simulates from scratch per prefix (O(n²) steps); incremental world if models get too slow.
 /** Stands after every plank (one seed), and once finished (all seeds). */
 export function isStable(planks: Plank[]): boolean {
   lastFailure = null;
