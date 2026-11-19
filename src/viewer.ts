@@ -6,8 +6,10 @@ import { box, HALF, rotation, type Plank } from './geometry';
 export type Viewer = {
   /** Fits the camera to the whole model once, so it does not jump between steps. */
   frame(all: Plank[]): void;
-  /** fresh planks drop into place unless animate is false */
-  show(old: Plank[], fresh: Plank[], animate?: boolean): void;
+  /** fresh planks drop into place unless animate is false; ghost planks (the rest of the model) are see-through */
+  show(old: Plank[], fresh: Plank[], animate?: boolean, ghost?: Plank[]): void;
+  /** pixels covered by the interface at the top and bottom: the model is framed in the band between */
+  setInsets(top: number, bottom: number): void;
   celebrate(on: boolean): void;
   /** renders now and returns a PNG data URL (thumbnails) */
   snapshot(): string;
@@ -83,12 +85,16 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
   const tints = ['#ffffff', '#fbefe0', '#f6e6d2', '#fff7ea'].map((c) => new THREE.Color(c));
   const fresh = new THREE.MeshStandardMaterial({ map: grain, color: '#ff9b82', emissive: '#ff5a36', emissiveIntensity: 0.35, roughness: 0.55 });
   const outline = new THREE.LineBasicMaterial({ color: '#1b1e26', transparent: true, opacity: 0.85 });
+  // the rest of the model in the 'finished model' preview: the same wood, paler
+  const ghostMat = new THREE.MeshStandardMaterial({ map: grain, color: '#fff6ea', emissive: '#ffffff', emissiveIntensity: 0.18, roughness: 0.85 });
 
   // one instanced mesh for the placed planks, one for the new ones: two draw calls whatever the model size
   const group = new THREE.Group();
   scene.add(group);
   let oldMesh: THREE.InstancedMesh | null = null;
   let freshMesh: THREE.InstancedMesh | null = null;
+  let ghostMesh: THREE.InstancedMesh | null = null;
+  let insets = { top: 0, bottom: 0 };
   let lines: THREE.LineSegments[] = [];
   let freshPlanks: Plank[] = [];
 
@@ -123,6 +129,8 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
+    // shift the picture so its middle sits in the free band between the top and bottom interface
+    camera.setViewOffset(w, h, 0, (insets.bottom - insets.top) / 2, w, h);
     camera.updateProjectionMatrix();
     wake(0);
   }
@@ -170,7 +178,9 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
       const target = new THREE.Vector3(0, center.y * 0.9, 0);
       resize(); // the aspect ratio must be known: on a phone in portrait, the width is what limits
       const vHalf = THREE.MathUtils.degToRad(camera.fov / 2);
-      const half = Math.min(vHalf, Math.atan(Math.tan(vHalf) * camera.aspect));
+      const h = canvas.clientHeight || 1;
+      const band = Math.max(0.3, (h - insets.top - insets.bottom) / h); // share of the height left to the model
+      const half = Math.min(Math.atan(Math.tan(vHalf) * band), Math.atan(Math.tan(vHalf) * camera.aspect));
       const dist = (radius / Math.sin(half)) * 0.98;
       camera.position.copy(target).add(new THREE.Vector3(0.62, 0.48, 1).normalize().multiplyScalar(dist));
       camera.near = dist / 60;
@@ -190,10 +200,17 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
       s.updateProjectionMatrix();
       resize();
     },
-    show(old, newPlanks, animate = true) {
+    setInsets(top, bottom) {
+      insets = { top, bottom };
+      resize();
+    },
+    show(old, newPlanks, animate = true, ghost = []) {
       oldMesh?.dispose();
       freshMesh?.dispose();
+      ghostMesh?.dispose();
       group.clear();
+      ghostMesh = instanced(ghostMat, ghost.length);
+      ghost.forEach((p, i) => place(ghostMesh!, i, p));
       oldMesh = instanced(wood, old.length);
       old.forEach((p, i) => {
         place(oldMesh!, i, p);
@@ -228,7 +245,8 @@ export function createViewer(canvas: HTMLCanvasElement, { preserve = false } = {
       for (const d of [geo, edges, table.geometry]) d.dispose();
       oldMesh?.dispose();
       freshMesh?.dispose();
-      for (const m of [wood, fresh, outline, table.material]) m.dispose();
+      ghostMesh?.dispose();
+      for (const m of [wood, fresh, outline, ghostMat, table.material]) m.dispose();
       grain.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

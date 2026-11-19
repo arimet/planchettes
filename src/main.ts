@@ -24,6 +24,7 @@ const ICON = {
   plan: svg('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 10v10"/>'),
   close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
   again: svg('<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>'),
+  eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
 };
 
 // little drawings of a plank in each pose, for the "take these" callout
@@ -150,6 +151,7 @@ function notice(m: Model) {
   const n = m.steps.length; // step n = finished model
   let step = clampStep(loadStep(m.id), n + 1);
   if (step === n) step = 0; // reopening a finished model starts it again
+  let preview = false; // "see the finished model" while staying on the current step
 
   app.innerHTML = `
     <main class="build t-${m.theme}">
@@ -157,10 +159,20 @@ function notice(m: Model) {
       <header class="hud-top">
         <a class="round" href="#/" aria-label="Retour aux modèles">${ICON.home}</a>
         <div class="title"><h1>${esc(m.name)}</h1><p class="where" aria-live="polite"></p></div>
-        <button class="round plan-toggle" aria-label="Voir le plan" aria-expanded="false">${ICON.plan}</button>
+        <div class="tools">
+          <button class="round final-toggle" aria-pressed="false" aria-label="Voir le modèle fini" title="Voir le modèle fini">${ICON.eye}</button>
+          <button class="round plan-toggle" aria-label="Voir le plan" title="Voir le plan" aria-expanded="false">${ICON.plan}</button>
+        </div>
       </header>
-      <aside class="parts" aria-label="Planchettes à prendre"><span class="label">Prends</span><ul></ul></aside>
-      <p class="hint"></p>
+      <aside class="step-card swipe" aria-label="Cette étape">
+        <div class="parts"><span class="label">Prends</span><ul></ul></div>
+        <p class="hint"></p>
+      </aside>
+      <aside class="final-card" hidden>
+        <span class="label">Modèle fini</span>
+        <p>En orange, l’étape où tu es. En clair, ce qu’il reste à poser.</p>
+        <button class="btn back-step">${ICON.prev}Revenir à l’étape</button>
+      </aside>
       <section class="drawer swipe" aria-label="Plan de l’étape" hidden>
         <header><h2>Le plan</h2><button class="round small close-plan" aria-label="Fermer le plan">${ICON.close}</button></header>
         <figure><figcaption>Vu de dessus</figcaption><div class="plan-top"></div></figure>
@@ -183,14 +195,26 @@ function notice(m: Model) {
 
   const $ = <T extends Element>(s: string) => app.querySelector<T>(s)!;
   const viewer = createViewer($<HTMLCanvasElement>('.view3d'));
-  viewer.frame(allPlanks(m));
   const drawer = $<HTMLElement>('.drawer');
   const toggle = $<HTMLButtonElement>('.plan-toggle');
+  const finalToggle = $<HTMLButtonElement>('.final-toggle');
+
+  // frame the model in the band the interface leaves free (measured once per size, so it never jumps between steps)
+  function fit() {
+    const h = innerHeight;
+    const top = $('.hud-top').getBoundingClientRect().bottom + 8;
+    const card = $('.step-card').getBoundingClientRect();
+    const bottomEdges = [$('.hud-bottom').getBoundingClientRect().top];
+    if (card.top > h / 2) bottomEdges.push(card.top); // phone: the step card sits above the buttons
+    viewer.setInsets(top, h - Math.min(...bottomEdges) + 8);
+    viewer.frame(allPlanks(m));
+  }
 
   function update(animate = true) {
     const done = step === n;
     const { old, fresh } = done ? { old: allPlanks(m), fresh: [] } : placed(m, step);
-    viewer.show(old, fresh, animate);
+    const rest = preview && !done ? m.steps.slice(step + 1).flatMap((s) => s.planks) : [];
+    viewer.show(old, fresh, animate && !preview, rest);
     viewer.celebrate(done);
     $('.plan-top').innerHTML = planSvg(old, fresh, 'top');
     $('.plan-front').innerHTML = planSvg(old, fresh, 'front');
@@ -201,11 +225,14 @@ function notice(m: Model) {
     $('.parts ul').innerHTML = [...groups]
       .map(([k, c]) => `<li><svg class="pose" viewBox="0 0 56 40" aria-hidden="true">${POSE_ICON[k]}</svg><b>×${c}</b><span>${POSE_LABEL[k][c > 1 ? 1 : 0]}</span></li>`)
       .join('');
-    $<HTMLElement>('.parts').hidden = done;
     const hint = done ? '' : (m.steps[step].hint ?? '');
     $('.hint').textContent = hint;
-    $<HTMLElement>('.hint').hidden = !hint;
+    $<HTMLElement>('.hint').hidden = hint === '';
+    $<HTMLElement>('.step-card').hidden = done || preview;
+    $<HTMLElement>('.final-card').hidden = !preview || done;
     $<HTMLElement>('.bravo').hidden = !done;
+    finalToggle.setAttribute('aria-pressed', String(preview));
+    finalToggle.disabled = done;
     const bar = $<HTMLElement>('.progress');
     bar.setAttribute('aria-valuenow', String(step));
     bar.querySelector<HTMLElement>('div')!.style.transform = `scaleX(${step / n})`;
@@ -215,7 +242,11 @@ function notice(m: Model) {
   }
   const go = (d: number) => {
     const s = clampStep(step + d, n + 1);
-    if (s !== step) (step = s), update();
+    if (s !== step) (step = s), (preview = false), update();
+  };
+  const setPreview = (on: boolean) => {
+    preview = on;
+    update(false);
   };
   const setDrawer = (open: boolean) => {
     drawer.hidden = !open;
@@ -225,15 +256,17 @@ function notice(m: Model) {
   $('.prev').addEventListener('click', () => go(-1));
   $('.next').addEventListener('click', () => go(1));
   $('.again').addEventListener('click', () => ((step = 0), update()));
+  finalToggle.addEventListener('click', () => setPreview(!preview));
+  $('.back-step').addEventListener('click', () => setPreview(false));
   toggle.addEventListener('click', () => setDrawer(drawer.hidden !== false));
   $('.close-plan').addEventListener('click', () => setDrawer(false));
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft') go(-1);
     if (e.key === 'ArrowRight') go(1);
-    if (e.key === 'Escape') setDrawer(false);
+    if (e.key === 'Escape') (setDrawer(false), preview && setPreview(false));
   };
   document.addEventListener('keydown', onKey);
-  // swipe on the bottom bar and the plan: dragging the 3D view only turns the model
+  // swipe on the step card, the bottom bar and the plan: dragging the 3D view only turns the model
   app.querySelectorAll<HTMLElement>('.swipe').forEach((el) => {
     let x0: number | null = null;
     el.addEventListener('pointerdown', (e) => (x0 = (e.target as Element).closest('button') ? null : e.clientX));
@@ -242,10 +275,19 @@ function notice(m: Model) {
       x0 = null;
     });
   });
+  let resizeTimer = 0;
+  const onResize = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(fit, 150);
+  };
+  addEventListener('resize', onResize);
 
   update(false);
+  fit();
   cleanup = () => {
     document.removeEventListener('keydown', onKey);
+    removeEventListener('resize', onResize);
+    clearTimeout(resizeTimer);
     viewer.dispose();
   };
 }
