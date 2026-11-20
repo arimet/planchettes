@@ -36,6 +36,7 @@ em { font-style: normal; background: linear-gradient(transparent 78%, var(--yell
 .t-animaux { --tile: var(--yellow-50); }
 .t-maisons { --tile: var(--coral-50); }
 .t-vehicules { --tile: var(--coral-50); }
+.t-monuments { --tile: #e4ecff; }
 .t-originaux { --tile: var(--lilac-50); }
 
 /* ---------- shared shapes ---------- */

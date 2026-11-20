@@ -55,5 +55,5 @@ steps[temple + 1].hint = 'Monte les murs bien droit';
 steps[temple + 4].hint = 'Le toit couvre la porte';
 steps[temple + 5].hint = 'La crête du toit, sur la tranche';
 
-export const pyramide: Model = { id: 'pyramide', name: 'Pyramide maya', theme: 'originaux', difficulty: 2, steps };
+export const pyramide: Model = { id: 'pyramide', name: 'Pyramide maya', theme: 'monuments', difficulty: 2, steps };
 export default pyramide;

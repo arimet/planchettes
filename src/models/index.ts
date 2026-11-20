@@ -1,5 +1,5 @@
 import type { Model } from '../model';
-// drafts/ holds models that stand but don't look right yet (elephant, windmill, tipi)
+// drafts/ holds models that stand but don't look right yet (elephant, windmill, tipi, snail)
 import { bateauPirate } from './bateau-pirate';
 import { chalet } from './chalet';
 import { chateau } from './chateau';
@@ -11,6 +11,19 @@ import { maison } from './maison';
 import { phare } from './phare';
 import { pont } from './pont';
 import { tourTorsadee } from './tour-torsadee';
+import { sapin } from './sapin';
+import { gratteCiel } from './gratte-ciel';
+import { tourDePise } from './tour-de-pise';
+import { bigBen } from './big-ben';
+import { arcDeTriomphe } from './arc-de-triomphe';
+import { colisee } from './colisee';
+import { robot } from './robot';
+import { helicoptere } from './helicoptere';
+import { crocodile } from './crocodile';
+import { tortue } from './tortue';
+import { grue } from './grue';
+import { cabaneArbre } from './cabane-arbre';
+import { dominos } from './dominos';
 import { tourEiffel } from './tour-eiffel';
 import { pyramide } from './pyramide';
 import { araignee } from './araignee';
@@ -21,4 +34,4 @@ import { viaduc } from './viaduc';
 import { pagode } from './pagode';
 import { dinosaure } from './dinosaure';
 
-export const MODELS: Model[] = [tourTorsadee, chateau, fusee, bateauPirate, pont, igloo, maison, chalet, girafe, locomotive, phare, tourEiffel, pyramide, araignee, chouette, tracteur, avion, viaduc, pagode, dinosaure];
+export const MODELS: Model[] = [tourTorsadee, chateau, fusee, bateauPirate, pont, igloo, maison, chalet, girafe, locomotive, phare, tourEiffel, pyramide, araignee, chouette, tracteur, avion, viaduc, pagode, dinosaure, sapin, gratteCiel, tourDePise, bigBen, arcDeTriomphe, colisee, robot, helicoptere, crocodile, tortue, grue, cabaneArbre, dominos];

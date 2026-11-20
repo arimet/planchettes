@@ -84,5 +84,5 @@ y += 15;
 steps.push({ planks: [at('up-x', C - 1.5, y, C - 0.5)], hint: 'L’antenne, debout tout en haut' });
 steps.push({ planks: corners.flatMap(([sx, sz]) => lean(sx, sz, 7.5, stage2, 78)), hint: 'Pour finir, penche une planchette contre chaque pilier' });
 
-export const tourEiffel: Model = { id: 'tour-eiffel', name: 'Tour Eiffel', theme: 'tours', difficulty: 3, steps };
+export const tourEiffel: Model = { id: 'tour-eiffel', name: 'Tour Eiffel', theme: 'monuments', difficulty: 3, steps };
 export default tourEiffel;

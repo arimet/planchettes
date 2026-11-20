@@ -1,6 +1,6 @@
 import { at, type Plank } from './geometry';
 
-export type Theme = 'maisons' | 'vehicules' | 'animaux' | 'tours' | 'ponts' | 'originaux';
+export type Theme = 'maisons' | 'vehicules' | 'animaux' | 'tours' | 'ponts' | 'monuments' | 'originaux';
 /** planks order = placing order */
 export type Step = { planks: Plank[]; hint?: string };
 export type Model = { id: string; name: string; theme: Theme; difficulty: 1 | 2 | 3; steps: Step[] };
@@ -11,6 +11,7 @@ export const THEMES: Record<Theme, string> = {
   animaux: 'Animaux',
   tours: 'Tours',
   ponts: 'Ponts',
+  monuments: 'Monuments',
   originaux: 'Originaux',
 };
 

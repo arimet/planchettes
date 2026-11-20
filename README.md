@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Step-by-step building instructions for wooden planks, like the ones that come with brick sets.</strong><br>
-  20 models, a 3D view you can turn, the planks to take at each step, and a plan to put them in the right place.
+  33 models, a 3D view you can turn, the planks to take at each step, and a plan to put them in the right place.
 </p>
 
 <p align="center">
@@ -62,8 +62,8 @@ Every model fits in a box of 200 planks.
 | Girafe | Animals | 105 | 21 | ●●○ |
 | Locomotive | Vehicles | 140 | 34 | ●●○ |
 | Phare | Towers | 80 | 17 | ●●○ |
-| Tour Eiffel | Towers | 132 | 24 | ●●● |
-| Pyramide maya | Originals | 162 | 40 | ●●○ |
+| Tour Eiffel | Monuments | 132 | 24 | ●●● |
+| Pyramide maya | Monuments | 162 | 40 | ●●○ |
 | Araignée | Animals | 48 | 17 | ●●○ |
 | Chouette | Animals | 112 | 30 | ●●○ |
 | Tracteur | Vehicles | 187 | 49 | ●●○ |
@@ -71,6 +71,19 @@ Every model fits in a box of 200 planks.
 | Viaduc | Bridges | 198 | 39 | ●●○ |
 | Pagode | Towers | 119 | 33 | ●●● |
 | Dinosaure | Animals | 142 | 24 | ●●● |
+| Sapin de Noël | Originals | 120 | 31 | ●●○ |
+| Gratte-ciel | Towers | 90 | 26 | ●●○ |
+| Tour de Pise | Monuments | 96 | 19 | ●●● |
+| Big Ben | Monuments | 120 | 21 | ●●○ |
+| Arc de triomphe | Monuments | 189 | 33 | ●●○ |
+| Colisée | Monuments | 180 | 36 | ●●● |
+| Robot | Originals | 109 | 28 | ●●○ |
+| Hélicoptère | Vehicles | 47 | 20 | ●●○ |
+| Crocodile | Animals | 118 | 24 | ●●○ |
+| Tortue | Animals | 107 | 24 | ●●○ |
+| Grue | Vehicles | 103 | 28 | ●●● |
+| Cabane dans l’arbre | Houses | 112 | 23 | ●●● |
+| Spirale de dominos | Originals | 60 | 10 | ●○○ |
 
 ## Every model really stands
 
