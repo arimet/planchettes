@@ -294,3 +294,6 @@ function notice(m: Model) {
 
 addEventListener('hashchange', render);
 render();
+
+// installed on a tablet, the notices keep working without wifi
+if (import.meta.env.PROD && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
