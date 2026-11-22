@@ -1,5 +1,5 @@
 import type { Model } from '../model';
-// drafts/ holds models that stand but don't look right yet (elephant, windmill, tipi, snail)
+// drafts/ holds models that stand but don't look right yet (elephant, windmill, tipi, snail, Babel tower, bus, sailboat)
 import { bateauPirate } from './bateau-pirate';
 import { chalet } from './chalet';
 import { chateau } from './chateau';
@@ -11,6 +11,21 @@ import { maison } from './maison';
 import { phare } from './phare';
 import { pont } from './pont';
 import { tourTorsadee } from './tour-torsadee';
+import { stonehenge } from './stonehenge';
+import { parthenon } from './parthenon';
+import { torii } from './torii';
+import { grandeMuraille } from './grande-muraille';
+import { escalier } from './escalier';
+import { chateauDeCartes } from './chateau-de-cartes';
+import { eglise } from './eglise';
+import { pingouin } from './pingouin';
+import { lapin } from './lapin';
+import { baleine } from './baleine';
+import { papillon } from './papillon';
+import { camionPompiers } from './camion-pompiers';
+import { voitureCourse } from './voiture-course';
+import { sousMarin } from './sous-marin';
+import { navette } from './navette';
 import { sapin } from './sapin';
 import { gratteCiel } from './gratte-ciel';
 import { tourDePise } from './tour-de-pise';
@@ -34,4 +49,4 @@ import { viaduc } from './viaduc';
 import { pagode } from './pagode';
 import { dinosaure } from './dinosaure';
 
-export const MODELS: Model[] = [tourTorsadee, chateau, fusee, bateauPirate, pont, igloo, maison, chalet, girafe, locomotive, phare, tourEiffel, pyramide, araignee, chouette, tracteur, avion, viaduc, pagode, dinosaure, sapin, gratteCiel, tourDePise, bigBen, arcDeTriomphe, colisee, robot, helicoptere, crocodile, tortue, grue, cabaneArbre, dominos];
+export const MODELS: Model[] = [tourTorsadee, chateau, fusee, bateauPirate, pont, igloo, maison, chalet, girafe, locomotive, phare, tourEiffel, pyramide, araignee, chouette, tracteur, avion, viaduc, pagode, dinosaure, sapin, gratteCiel, tourDePise, bigBen, arcDeTriomphe, colisee, robot, helicoptere, crocodile, tortue, grue, cabaneArbre, dominos, stonehenge, parthenon, torii, grandeMuraille, escalier, chateauDeCartes, eglise, pingouin, lapin, baleine, papillon, camionPompiers, voitureCourse, sousMarin, navette];

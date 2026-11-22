@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Step-by-step building instructions for wooden planks, like the ones that come with brick sets.</strong><br>
-  33 models, a 3D view you can turn, the planks to take at each step, and a plan to put them in the right place.
+  48 models, a 3D view you can turn, the planks to take at each step, and a plan to put them in the right place.
 </p>
 
 <p align="center">
@@ -32,6 +32,10 @@ The interface is in French; it was made for a French-speaking child.
 - **"Prends ×4 couchées".** A card says how many planks to take and in which position: lying flat, on edge, standing, or leaning.
 - **The plan.** A drawer shows the step seen from above and from the front, each new plank numbered in placing order, framed on the step so the numbers stay readable.
 - **Turn it.** Drag the 3D view to see the model from any side. Swipe or use the arrow keys to change step. The current step is remembered for each model.
+
+### Install it
+
+Planchettes is a web app: on a phone or tablet, use "Add to Home Screen" to open it full screen with its own icon. Notices you have opened keep working offline.
 
 ## The models
 
@@ -84,6 +88,21 @@ Every model fits in a box of 200 planks.
 | Grue | Vehicles | 103 | 28 | ●●● |
 | Cabane dans l’arbre | Houses | 112 | 23 | ●●● |
 | Spirale de dominos | Originals | 60 | 10 | ●○○ |
+| Stonehenge | Monuments | 123 | 30 | ●○○ |
+| Parthénon | Monuments | 144 | 26 | ●●○ |
+| Torii | Monuments | 31 | 13 | ●○○ |
+| Grande Muraille | Monuments | 198 | 40 | ●●○ |
+| Escalier en colimaçon | Originals | 80 | 40 | ●●○ |
+| Château de cartes | Originals | 70 | 34 | ●●● |
+| Église | Houses | 128 | 25 | ●●● |
+| Pingouin | Animals | 155 | 37 | ●●○ |
+| Lapin | Animals | 95 | 24 | ●●○ |
+| Baleine | Animals | 93 | 22 | ●●○ |
+| Papillon | Animals | 127 | 27 | ●○○ |
+| Camion de pompiers | Vehicles | 134 | 33 | ●●● |
+| Voiture de course | Vehicles | 69 | 33 | ●●○ |
+| Sous-marin | Vehicles | 94 | 27 | ●●○ |
+| Navette spatiale | Originals | 90 | 20 | ●●● |
 
 ## Every model really stands
 
