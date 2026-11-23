@@ -83,13 +83,20 @@ function thumbnails(): Map<string, string> {
   return thumbs;
 }
 
+// coming back from a notice lands on the same spot of the list, not at the top
+let onHome = false;
+let homeScroll = 0;
+history.scrollRestoration = 'manual';
+
 function render() {
+  if (onHome) homeScroll = scrollY;
   cleanup();
   cleanup = () => {};
   const route = parseRoute(location.hash, MODELS);
+  onHome = route.page !== 'notice';
   if (route.page === 'notice') notice(route.model);
   else home();
-  window.scrollTo(0, 0);
+  window.scrollTo(0, onHome ? homeScroll : 0);
 }
 
 // ---------- home ----------
