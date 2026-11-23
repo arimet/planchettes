@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Step-by-step building instructions for wooden planks, like the ones that come with brick sets.</strong><br>
-  48 models, a 3D view you can turn, the planks to take at each step, and a plan to put them in the right place.
+  55 models, a 3D view you can turn, the planks to take at each step, and a plan to put them in the right place.
 </p>
 
 <p align="center">
@@ -31,6 +31,7 @@ The interface is in French; it was made for a French-speaking child.
 - **One step, a few planks.** Each step adds 1 to 8 planks. The new ones drop into place in coral; the ones already placed stay natural wood.
 - **"Prends ×4 couchées".** A card says how many planks to take and in which position: lying flat, on edge, standing, or leaning.
 - **The plan.** A drawer shows the step seen from above and from the front, each new plank numbered in placing order, framed on the step so the numbers stay readable.
+- **How far apart.** When a new plank does not touch its neighbour, the card gives the gap in spare planks ("Écart : 2 planchettes à plat"): one lying flat is 3 wide, one on its edge is 1, one lengthwise is 15. The plan marks each gap with a letter.
 - **Turn it.** Drag the 3D view to see the model from any side. Swipe or use the arrow keys to change step. The current step is remembered for each model.
 
 ### Install it
@@ -51,7 +52,7 @@ Planchettes is a web app: on a phone or tablet, use "Add to Home Screen" to open
   <img src="media/pyramide.png" width="190" alt="Mayan pyramid">
 </p>
 
-Every model fits in a box of 200 planks.
+Every model fits in a box of 200 planks. Some are scenes made of several small buildings (a farm, a village, a small town), built one building at a time. A search field finds a model by name or theme.
 
 | Model | Theme | Planks | Steps | Level |
 |---|---|---:|---:|:---:|
@@ -103,6 +104,13 @@ Every model fits in a box of 200 planks.
 | Voiture de course | Vehicles | 69 | 33 | ●●○ |
 | Sous-marin | Vehicles | 94 | 27 | ●●○ |
 | Navette spatiale | Originals | 90 | 20 | ●●● |
+| Ferme | Houses | 185 | 48 | ●●● |
+| Village | Houses | 180 | 44 | ●●● |
+| Petite ville | Houses | 186 | 47 | ●●● |
+| Escaliers | Originals | 96 | 27 | ●●○ |
+| Arbre | Originals | 106 | 28 | ●●● |
+| Palmier | Originals | 53 | 14 | ●●● |
+| Petits arbres | Originals | 148 | 49 | ●●○ |
 
 ## Every model really stands
 
