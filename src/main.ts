@@ -6,7 +6,7 @@ import './style.css';
 import type { Plank } from './geometry';
 import { count, placed, THEMES, type Model, type Theme } from './model';
 import { MODELS } from './models';
-import { planSvg } from './plan2d';
+import { gapKeys, gaps, planSvg } from './plan2d';
 import { clampStep, loadStep, parseRoute, saveStep } from './state';
 import { createViewer } from './viewer';
 
@@ -196,7 +196,7 @@ function notice(m: Model) {
         </div>
       </header>
       <aside class="step-card swipe" aria-label="Cette étape">
-        <div class="parts"><span class="label">Prends</span><ul></ul></div>
+        <div class="parts"><span class="label">Prends</span><ul></ul><p class="gap-note"></p></div>
         <p class="hint"></p>
       </aside>
       <aside class="final-card" hidden>
@@ -206,7 +206,7 @@ function notice(m: Model) {
       </aside>
       <section class="drawer swipe" aria-label="Plan de l’étape" hidden>
         <header><h2>Le plan</h2><button class="round small close-plan" aria-label="Fermer le plan">${ICON.close}</button></header>
-        <figure><figcaption>Vu de dessus</figcaption><div class="plan-top"></div></figure>
+        <figure><figcaption>Vu de dessus</figcaption><div class="plan-top"></div><ul class="gap-legend" aria-label="Écarts, mesurés en planchettes"></ul></figure>
         <figure><figcaption>Vu de face</figcaption><div class="plan-front"></div></figure>
       </section>
       <section class="bravo" hidden>
@@ -256,6 +256,12 @@ function notice(m: Model) {
     $('.parts ul').innerHTML = [...groups]
       .map(([k, c]) => `<li><svg class="pose" viewBox="0 0 56 40" aria-hidden="true">${POSE_ICON[k]}</svg><b>×${c}</b><span>${POSE_LABEL[k][c > 1 ? 1 : 0]}</span></li>`)
       .join('');
+    // spacing, measured with spare planks; several different gaps are easier to read on the plan
+    const sizes = gapKeys(gaps(old, fresh));
+    $('.gap-legend').innerHTML = sizes.map((t, i) => `<li><b>${String.fromCharCode(65 + i)}</b>${t}</li>`).join('');
+    $<HTMLElement>('.gap-legend').hidden = sizes.length === 0;
+    $('.gap-note').textContent = sizes.length === 1 ? `Écart : ${sizes[0]}` : 'Écarts : regarde le plan';
+    $<HTMLElement>('.gap-note').hidden = sizes.length === 0;
     const hint = done ? '' : (m.steps[step].hint ?? '');
     $('.hint').textContent = hint;
     $<HTMLElement>('.hint').hidden = hint === '';

@@ -27,6 +27,84 @@ const inside = (poly: Pt[], x: number, y: number) =>
     return (b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0]) > 1e-6;
   });
 
+export type Gap = { a: Pt; b: Pt; size: number };
+const NEAR = 0.75; // closer than this, the planks just touch
+const FAR = 16; // beyond a plank's length, the neighbour no longer helps to place it
+
+/**
+ * Free space, seen from above, between each new plank and its nearest parallel neighbour
+ * on the same level (already placed, or earlier in the step): one gap per plank, none when it touches one.
+ * What a child measures with spare planks.
+ */
+export function gaps(old: Plank[], fresh: Plank[]): Gap[] {
+  const foot = (p: Plank) => {
+    const c = corners(p);
+    const ys = c.map((v) => v.y);
+    return { pts: hull(c.map((v) => [v.x, v.z] as Pt)), y0: Math.min(...ys), y1: Math.max(...ys) };
+  };
+  const span = (pts: Pt[], [ux, uy]: Pt) => {
+    const d = pts.map(([x, y]) => x * ux + y * uy);
+    return [Math.min(...d), Math.max(...d)];
+  };
+  const placed = old.map(foot);
+  const out: Gap[] = [];
+  for (const f of fresh.map(foot)) {
+    if (f.pts.length === 4) {
+      const axes = [0, 1].map((i) => {
+        const [dx, dy] = [f.pts[i + 1][0] - f.pts[i][0], f.pts[i + 1][1] - f.pts[i][1]];
+        const len = Math.hypot(dx, dy);
+        return [dx / len, dy / len] as Pt;
+      });
+      const peers = placed.filter(
+        (c) =>
+          c.pts.length === 4 &&
+          Math.min(f.y1, c.y1) - Math.max(f.y0, c.y0) > 0.1 &&
+          // parallel: its first edge runs along one of our two axes
+          axes.some(([ux, uy]) => Math.abs(ux * (c.pts[1][1] - c.pts[0][1]) - uy * (c.pts[1][0] - c.pts[0][0])) < 0.03 * Math.hypot(c.pts[1][0] - c.pts[0][0], c.pts[1][1] - c.pts[0][1])),
+      );
+      let best: Gap | undefined;
+      axes.forEach((along, i) => {
+        const across = axes[1 - i];
+        const [f0, f1] = span(f.pts, along);
+        const [g0, g1] = span(f.pts, across);
+        for (const c of peers) {
+          const [c0, c1] = span(c.pts, along);
+          const [d0, d1] = span(c.pts, across);
+          const lo = Math.max(g0, d0);
+          const hi = Math.min(g1, d1);
+          if (hi - lo < 0.9) continue; // not facing each other
+          if (c0 < f1 - 1e-6 && c1 > f0 + 1e-6) continue; // side by side along this axis, no gap
+          const [from, to] = c0 >= f1 - 1e-6 ? [f1, c0] : [c1, f0];
+          const size = to - from;
+          if (size > FAR || (best && best.size <= size)) continue;
+          const mid = (lo + hi) / 2;
+          const at = (t: number): Pt => [along[0] * t + across[0] * mid, along[1] * t + across[1] * mid];
+          best = { a: at(from), b: at(to), size };
+        }
+      });
+      if (best && best.size >= NEAR) out.push(best); // touching its neighbour: nothing to measure
+    }
+    placed.push(f);
+  }
+  return out;
+}
+
+/** A gap in spare planks: 15 = one lengthwise, 3 = one lying flat, 1 = one on its edge. */
+export function gapText(size: number): string {
+  let n = Math.round(size);
+  const parts: [number, string][] = [];
+  for (const [unit, name] of [[15, 'en long'], [3, 'à plat'], [1, 'sur la tranche']] as const) {
+    const k = Math.floor(n / unit);
+    if (k) parts.push([k, name]);
+    n -= k * unit;
+  }
+  if (parts.length === 1) return `${parts[0][0]} planchette${parts[0][0] > 1 ? 's' : ''} ${parts[0][1]}`;
+  return parts.map(([k, name]) => `${k} ${name}`).join(' + ');
+}
+
+/** The different gaps of a step, in placing order: the plan marks them A, B, C… */
+export const gapKeys = (marks: Gap[]) => [...new Set(marks.map((g) => gapText(g.size)))];
+
 /**
  * Orthographic plan. top = seen from above (x → right, z → down);
  * front = seen from +z (x → right, y → up), same side as the 3D camera starts.
@@ -50,10 +128,13 @@ export function planSvg(old: Plank[], fresh: Plank[], view: 'top' | 'front'): st
   const level = Math.max(...(fresh.length ? fresh : old).map((p) => Math.max(...corners(p).map((v) => v.y))));
   // framed on this step's planks (with some context around), so numbers stay readable on big models
   const focus = rects.filter((q) => q.fresh).length ? rects.filter((q) => q.fresh) : rects;
-  const minX = Math.min(...focus.map((q) => q.x0)) - MARGIN;
-  const minY = Math.min(...focus.map((q) => q.y0)) - MARGIN;
-  const w = Math.max(...focus.map((q) => q.x1)) + MARGIN - minX;
-  const h = Math.max(...focus.map((q) => q.y1)) + MARGIN - minY;
+  const marks = view === 'top' ? gaps(old, fresh) : [];
+  const xs = [...focus.flatMap((q) => [q.x0, q.x1]), ...marks.flatMap((g) => [g.a[0], g.b[0]])];
+  const ys = [...focus.flatMap((q) => [q.y0, q.y1]), ...marks.flatMap((g) => [g.a[1], g.b[1]])];
+  const minX = Math.min(...xs) - MARGIN;
+  const minY = Math.min(...ys) - MARGIN;
+  const w = Math.max(...xs) + MARGIN - minX;
+  const h = Math.max(...ys) + MARGIN - minY;
   const label = Math.max(LABEL, Math.max(w, h) / 22);
   // painter's order: lower (top view) or farther (front view) first
   const body = [...rects]
@@ -75,5 +156,19 @@ export function planSvg(old: Plank[], fresh: Plank[], view: 'top' | 'front'): st
     else labels.push({ x, y, text: String(q.fresh) });
   }
   const texts = labels.map((l) => `<text class="order" x="${r(l.x)}" y="${r(l.y)}" font-size="${r(label)}" stroke-width="${r(label / 4.5)}">${l.text}</text>`);
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="plan" overflow="hidden" viewBox="${r(minX)} ${r(minY)} ${r(w)} ${r(h)}">${body.join('')}${texts.join('')}</svg>`;
+  // the gap to the neighbour: a line between the two planks, and a letter explained in the legend
+  const keys = gapKeys(marks);
+  const seen = new Set<string>();
+  const rules = marks.map(({ a, b, size }) => {
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const [nx, ny] = [(-(b[1] - a[1]) / len) * label * 0.3, ((b[0] - a[0]) / len) * label * 0.3];
+    const tick = ([x, y]: Pt) => `M${r(x - nx)} ${r(y - ny)}L${r(x + nx)} ${r(y + ny)}`;
+    const line = `<path class="gap" stroke-width="${r(label / 8)}" d="M${r(a[0])} ${r(a[1])}L${r(b[0])} ${r(b[1])}${tick(a)}${tick(b)}"/>`;
+    const text = gapText(size);
+    if (seen.has(text)) return line; // same gap again: the line is enough
+    seen.add(text);
+    const [x, y] = [r((a[0] + b[0]) / 2), r((a[1] + b[1]) / 2)];
+    return `${line}<circle class="gap-dot" cx="${x}" cy="${y}" r="${r(label * 0.5)}"/><text class="gap-key" x="${x}" y="${y}" font-size="${r(label * 0.7)}">${String.fromCharCode(65 + keys.indexOf(text))}</text>`;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="plan" overflow="hidden" viewBox="${r(minX)} ${r(minY)} ${r(w)} ${r(h)}">${body.join('')}${rules.join('')}${texts.join('')}</svg>`;
 }
