@@ -121,6 +121,15 @@ em { font-style: normal; background: linear-gradient(transparent 78%, var(--yell
 .live-take .pose { width: 48px; height: 34px; }
 .models { margin-top: clamp(64px, 10vw, 120px); }
 .models h2 { text-align: center; }
+.search {
+  display: flex; align-items: center; gap: 10px; max-width: 440px; margin: 22px auto 0; padding: 0 18px; color: var(--ink);
+  background: var(--surface); border: 2px solid var(--edge); border-radius: var(--pill); box-shadow: 3px 3px 0 var(--shade);
+}
+.search:focus-within { outline: 3px solid var(--accent); outline-offset: 3px; }
+.search svg { width: 22px; height: 22px; flex: none; }
+.search input { flex: 1; min-width: 0; padding: 13px 0; border: 0; outline: 0; background: none; color: var(--ink); font: 800 17px/1.2 var(--sans); }
+.search input::placeholder { color: var(--muted); opacity: 1; }
+.none { margin-top: 8px; text-align: center; font-weight: 800; color: var(--muted); }
 .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 22px 0 32px; }
 .shelf { list-style: none; padding: 0; display: grid; gap: 28px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
 .model {

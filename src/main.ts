@@ -13,6 +13,9 @@ import { createViewer } from './viewer';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let cleanup = () => {};
 let themeFilter: Theme | null = null;
+let query = '';
+// accents and case don't matter when searching: "eglise" finds "Église"
+const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 // ---------- icons (authored, one stroke weight) ----------
 const svg = (body: string, cls = 'icon') =>
@@ -93,7 +96,6 @@ function render() {
 function home() {
   document.title = 'Planchettes';
   const themes = (Object.keys(THEMES) as Theme[]).filter((t) => MODELS.some((m) => m.theme === t));
-  const shown = MODELS.filter((m) => !themeFilter || m.theme === themeFilter);
   const pics = thumbnails();
   const star = MODELS[0];
   app.innerHTML = `
@@ -118,14 +120,18 @@ function home() {
       </section>
       <section class="models" id="modeles">
         <h2>Les modèles</h2>
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+          <input type="search" placeholder="Chercher un modèle" aria-label="Chercher un modèle" value="${esc(query)}">
+        </label>
         <nav class="chips" aria-label="Thèmes">
           <button class="pill" aria-pressed="${!themeFilter}" data-theme="">Tout</button>
           ${themes.map((t) => `<button class="pill" aria-pressed="${themeFilter === t}" data-theme="${t}">${THEMES[t]}</button>`).join('')}
         </nav>
         <ul class="shelf">
-          ${shown
+          ${MODELS
             .map(
-              (m) => `<li><a class="model t-${m.theme}" href="#/m/${m.id}">
+              (m) => `<li data-theme="${m.theme}" data-q="${esc(fold(`${m.name} ${THEMES[m.theme]}`))}"><a class="model t-${m.theme}" href="#/m/${m.id}">
                 <span class="tile"><img src="${pics.get(m.id)}" alt="" width="480" height="400"></span>
                 <span class="meta">
                   <span class="name">${esc(m.name)}</span>
@@ -135,14 +141,32 @@ function home() {
             )
             .join('')}
         </ul>
+        <p class="none" hidden>Aucun modèle ne s’appelle comme ça.</p>
       </section>
     </div>`;
-  app.querySelectorAll<HTMLButtonElement>('.chips .pill').forEach((b) =>
+  const pills = app.querySelectorAll<HTMLButtonElement>('.chips .pill');
+  const apply = () => {
+    const q = fold(query.trim());
+    let found = 0;
+    app.querySelectorAll<HTMLElement>('.shelf li').forEach((li) => {
+      li.hidden = !((!themeFilter || li.dataset.theme === themeFilter) && li.dataset.q!.includes(q));
+      if (!li.hidden) found++;
+    });
+    pills.forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.theme || null) === themeFilter)));
+    app.querySelector<HTMLElement>('.none')!.hidden = found > 0;
+  };
+  pills.forEach((b) =>
     b.addEventListener('click', () => {
       themeFilter = (b.dataset.theme || null) as Theme | null;
-      home();
+      apply();
     }),
   );
+  app.querySelector<HTMLInputElement>('.search input')!.addEventListener('input', (e) => {
+    query = (e.target as HTMLInputElement).value;
+    themeFilter = null; // a search looks in every theme
+    apply();
+  });
+  apply();
 }
 
 // ---------- notice ----------
